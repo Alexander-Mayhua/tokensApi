@@ -54,6 +54,10 @@ switch ($route) {
     require __DIR__ . '/src/control/UserController.php';
     (new \App\Control\UserController())->show();
     break;
+    case 'consumoapi':
+    require __DIR__ . '/src/control/ConsumoApiController.php';
+    (new \App\Control\ConsumoApiController())->index();
+    break;
   default:
     redirect('dashboard');
 }

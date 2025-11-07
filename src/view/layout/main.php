@@ -27,6 +27,7 @@
     <a href="<?= App\Lib\url_to('dashboard') ?>" class="<?= ($title==='Dashboard')?'active':'' ?>">🏠 Dashboard</a>
     <a href="<?= App\Lib\url_to('tokens') ?>" class="<?= ($title==='Tokens API')?'active':'' ?>">🔑 Tokens API</a>
     <a href="<?= App\Lib\url_to('usuario') ?>" class="<?= ($title==='Usuario')?'active':'' ?>">👤 Usuario</a>
+        <a href="<?= App\Lib\url_to('consumoapi') ?>" class="<?= ($title==='consumoapi')?'active':'' ?>">👤 ConsumoApi</a>
     <hr>
     <a href="<?= App\Lib\url_to('logout') ?>">⏻ Salir</a>
   </aside>
