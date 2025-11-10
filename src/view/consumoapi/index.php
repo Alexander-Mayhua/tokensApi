@@ -1,64 +1,176 @@
 <?php
-// Vista: consumoapi/index.php
+// Vista: buscar DOCENTES con token oculto (validación en backend)
 if (session_status() === PHP_SESSION_NONE) session_start();
+$tokenValue = $_SESSION['api_token'] ?? ($_GET['token'] ?? '');
 ?>
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">🔍 Consumo de API - Buscar Docentes</h3>
-  <a class="btn btn-outline-secondary" href="?">Volver</a>
+
+<!-- 🔹 Estilos personalizados -->
+<style>
+body {
+  background: #f3f6fb;
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+}
+
+.header-bar {
+  background: linear-gradient(90deg, #004e92, #000428);
+  color: #fff;
+  padding: 25px 40px;
+  border-radius: 15px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-bar h2 {
+  font-weight: 600;
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.header-bar small {
+  display: block;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.8);
+}
+
+.btn-custom {
+  background: linear-gradient(90deg, #007bff, #0056d2);
+  border: none;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+.btn-custom:hover {
+  transform: scale(1.03);
+  background: linear-gradient(90deg, #0056d2, #003b99);
+}
+
+.card {
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.card h5 {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.table thead {
+  background: #004e92;
+  color: #fff;
+}
+
+.table th, .table td {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+
+.spinner-border {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(10px);}
+  to {opacity: 1; transform: translateY(0);}
+}
+</style>
+
+<!-- 🔹 Encabezado institucional -->
+<div class="header-bar">
+  <div>
+    <h2>📡 Módulo de Consumo API</h2>
+    <small>Consulta de docentes registrados en el sistema institucional</small>
+  </div>
+  <a href="?" class="btn btn-outline-light px-4 py-2 fw-semibold rounded-pill shadow-sm">
+    <i class="bi bi-arrow-left"></i> Volver
+  </a>
 </div>
 
-<div class="card p-4 mb-4">
-  <form id="formBuscarDocente" method="post">
+<!-- 🔹 Formulario de búsqueda -->
+<div class="card p-4 mb-4 fadeIn">
+  <form id="formBuscarDocente">
+    <input type="hidden" name="token" value="<?= htmlspecialchars($tokenValue, ENT_QUOTES, 'UTF-8') ?>">
     <input type="hidden" name="tipo" value="verdocenteapibynombreodni">
+
     <div class="row g-3 align-items-end">
       <div class="col-md-8">
-        <label class="form-label">Nombre / Apellido / DNI</label>
-        <input type="text" name="data" id="data" class="form-control" placeholder="Ej.: Ana, Pérez o 12345678">
+        <label class="form-label fw-semibold text-secondary">🔍 Nombre / Apellido / DNI</label>
+        <input type="text" name="data" id="data" class="form-control form-control-lg shadow-sm"
+               placeholder="Ejemplo: Ana, Pérez o 12345678" required>
       </div>
       <div class="col-md-4 d-flex gap-2">
-        <button type="submit" class="btn btn-primary flex-fill">Buscar</button>
-        <button type="button" class="btn btn-outline-secondary flex-fill" id="btnLimpiar">Limpiar</button>
+        <button type="submit" class="btn btn-custom flex-fill btn-lg">
+          <i class="bi bi-search"></i> Buscar
+        </button>
+        <button type="button" class="btn btn-outline-secondary flex-fill btn-lg" id="btnLimpiar">
+          <i class="bi bi-eraser"></i> Limpiar
+        </button>
       </div>
     </div>
   </form>
 </div>
 
-<div class="card p-3">
-  <h5 class="mb-3">Resultados</h5>
-  <div id="resultado">
-    <div class="text-muted">Escriba un nombre/apellido o un DNI para buscar.</div>
+<!-- 🔹 Resultados -->
+<div class="card p-4 fadeIn">
+  <h5 class="mb-3"><i class="bi bi-list-ul"></i> Resultados de la búsqueda</h5>
+  <div id="resultado" class="text-center text-muted">
+    <div>Ingrese un nombre, apellido o DNI para realizar la búsqueda.</div>
   </div>
 </div>
 
+<!-- 🔹 Script funcional -->
 <script>
-document.getElementById('formBuscarDocente').addEventListener('submit', async (e) => {
+document.getElementById('formBuscarDocente').addEventListener('submit', async function(e) {
   e.preventDefault();
-  const form = e.target;
-  const resDiv = document.getElementById('resultado');
-  resDiv.innerHTML = '<div class="text-center text-muted p-3">Consultando API...</div>';
+  const formData = new FormData(this);
+
+  document.getElementById('resultado').innerHTML =
+    `<div class="p-4 text-center text-muted">
+       <div class="spinner-border text-primary" role="status"></div><br>
+       <small class="d-block mt-2">Consultando API...</small>
+     </div>`;
 
   try {
     const res = await fetch('?c=consumoapi&a=verDocenteApiByNombreODni', {
       method: 'POST',
-      body: new FormData(form)
+      body: formData
     });
     const data = await res.json();
 
     if (!data || data.status === false) {
-      resDiv.innerHTML = `<div class="alert alert-danger">${data.msg || 'Error en la consulta.'}</div>`;
+      document.getElementById('resultado').innerHTML =
+        `<div class="alert alert-danger fadeIn"><i class="bi bi-x-circle"></i> ${data.msg || 'Error en la consulta.'}</div>`;
       return;
     }
 
     const docentes = data.contenido || [];
     if (docentes.length === 0) {
-      resDiv.innerHTML = '<div class="alert alert-warning">No se encontraron resultados.</div>';
+      document.getElementById('resultado').innerHTML =
+        `<div class="alert alert-warning fadeIn"><i class="bi bi-exclamation-triangle"></i> No se encontraron resultados.</div>`;
       return;
     }
 
     let html = `
-      <div class="table-responsive">
-        <table class="table table-sm table-bordered align-middle">
-          <thead class="table-light">
+      <div class="table-responsive fadeIn">
+        <table class="table table-bordered table-striped align-middle">
+          <thead>
             <tr>
               <th>#</th>
               <th>DNI</th>
@@ -87,22 +199,23 @@ document.getElementById('formBuscarDocente').addEventListener('submit', async (e
     });
 
     html += '</tbody></table></div>';
-    resDiv.innerHTML = html;
+    document.getElementById('resultado').innerHTML = html;
 
   } catch (err) {
     console.error(err);
-    resDiv.innerHTML = '<div class="alert alert-danger">Error al conectar con el servidor.</div>';
+    document.getElementById('resultado').innerHTML =
+      `<div class="alert alert-danger fadeIn"><i class="bi bi-wifi-off"></i> Error al conectar con el servidor.</div>`;
   }
 });
 
-document.getElementById('btnLimpiar').addEventListener('click', () => {
+document.getElementById('btnLimpiar').addEventListener('click', function() {
   document.getElementById('data').value = '';
   document.getElementById('resultado').innerHTML =
-    '<div class="text-muted">Escriba un nombre/apellido o un DNI para buscar.</div>';
+    `<div class="text-muted">Ingrese un nombre, apellido o DNI para realizar la búsqueda.</div>`;
 });
 
 function esc(v) {
   if (v === null || v === undefined) return '';
-  return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 </script>

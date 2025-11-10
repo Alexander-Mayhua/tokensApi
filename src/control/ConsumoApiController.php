@@ -1,62 +1,51 @@
 <?php
-// src/control/consumoApiController.php
-require_once __DIR__ . '/../library/helpers.php';
-require_once __DIR__ . '/../model/ClientApi.php';
-require_once __DIR__ . '/../model/ConsumoApi.php';
+namespace App\Control;
 
-class ConsumoApiController
-{
-    public function index()
-    {
-        // Carga la vista principal de consumo API
-         require __DIR__ . '/../view/consumoapi/index.php';
+class ConsumoApiController {
+    public function index() {
+        require __DIR__ . '/../view/consumoapi/index.php';
     }
 
-    // Ruta: ?c=consumoapi&a=verDocenteApiByNombreODni
-    // Espera: POST { tipo:'verdocenteapibynombreodni', token, data }
-    public function verDocenteApiByNombreODni()
-    {
-        require_once __DIR__ . '/../model/ConsumoApi.php';
+    public function verDocenteApiByNombreODni() {
         header('Content-Type: application/json; charset=utf-8');
 
         $tipo  = strtolower($_POST['tipo'] ?? '');
-        $term  = trim((string)($_POST['data'] ?? ''));
-        $token = trim((string)($_POST['token'] ?? ''));
+        $term  = trim($_POST['data'] ?? '');
+        $token = trim($_POST['token'] ?? '');
 
         if ($tipo !== 'verdocenteapibynombreodni') {
             echo json_encode(['status' => false, 'msg' => 'Parámetro tipo inválido']);
             return;
         }
 
-        // Token opcional: si viene, validar cliente
-        if ($token !== '') {
-            $parts = array_filter(array_map('trim', explode('-', $token)), 'strlen');
-            $last  = end($parts);
-            $id_cliente = (ctype_digit($last) ? (int)$last : null);
+        // ✅ Aquí defines la URL del servidor del INSTITUTO (tu API real)
+        $apiUrl = 'https://instituto.estudiojuridico.com.pe/';
 
-            if (!$id_cliente) {
-                echo json_encode(['status' => false, 'msg' => 'Token inválido o incompleto']);
-                return;
-            }
+        // Prepara los datos POST que se enviarán al servidor del Instituto
+        $postData = [
+            'tipo'  => $tipo,
+            'data'  => $term,
+            'token' => $token
+        ];
 
-            $owner  = ConsumoApi::buscarClienteById($id_cliente);
-            $estado = is_array($owner) ? ($owner['estado'] ?? null) : null;
-            if (!$owner || $estado !== 'Activo') {
-                echo json_encode(['status' => false, 'msg' => 'Error, cliente no activo o no encontrado']);
-                return;
-            }
-        }
+        // Realiza la conexión usando cURL
+        $ch = curl_init($apiUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // <- temporal si hay error SSL
 
-        if ($term === '') {
-            echo json_encode(['status' => true, 'msg' => '', 'contenido' => []]);
+        $response = curl_exec($ch);
+        $error    = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false) {
+            echo json_encode(['status' => false, 'msg' => "No se pudo conectar con la API ($error)"]);
             return;
         }
 
-        try {
-            $docentes = ConsumoApi::buscarDocentes($term, 50, 0);
-            echo json_encode(['status' => true, 'msg' => '', 'contenido' => $docentes]);
-        } catch (\Throwable $e) {
-            echo json_encode(['status' => false, 'msg' => 'Error interno']);
-        }
+        // Devuelve al navegador la respuesta del servidor institucional
+        echo $response;
     }
 }
