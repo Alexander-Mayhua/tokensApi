@@ -8,12 +8,12 @@ class ConsumoApiController {
         require __DIR__ . '/../view/consumoapi/index.php';
     }
 
-    // ✅ Muestra el token registrado (solo informativo)
+    // ✅ Muestra el token registrado (opcional)
     public function form() {
         require __DIR__ . '/../view/consumoapi/form.php';
     }
 
-    // ✅ Envía los datos al sistema Instituto con depuración avanzada
+    // ✅ Envía los datos al sistema del Instituto
     public function procesar() {
         header('Content-Type: application/json; charset=utf-8');
 
@@ -26,46 +26,51 @@ class ConsumoApiController {
             return;
         }
 
-        // 🚀 Preparar datos POST
+        // 🚀 Preparar datos POST exactos que la API del Instituto espera
         $postData = http_build_query([
-            'tipo'  => 'verdocenteapibynombreodni', // 👈 valor exacto que la API del Instituto espera
+            'tipo'  => 'verdocenteapibynombreodni',
             'token' => $token,
             'data'  => $data
         ]);
 
         $ch = curl_init($rutaApi);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 20);
 
-        // Configuración cURL
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Devuelve la respuesta
-        curl_setopt($ch, CURLOPT_POST, true);           // Método POST
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);// Datos POST
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);// Ignorar verificación SSL
-        curl_setopt($ch, CURLOPT_TIMEOUT, 20);          // Timeout 20s
+        // Seguir redirecciones por si el hosting redirige HTTP/HTTPS
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 
-        // 🔹 Depuración y seguimiento
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Seguir redirecciones
-        curl_setopt($ch, CURLOPT_VERBOSE, true);        // Depuración cURL
-
-        // Ejecutar cURL
         $response = curl_exec($ch);
-        $info = curl_getinfo($ch);      // Información de la conexión
         $error = curl_error($ch);
+        $info = curl_getinfo($ch);
         curl_close($ch);
 
-        // Si hay error, mostrar detalles
         if ($error) {
             echo json_encode([
                 'status' => false,
-                'mensaje' => 'Error cURL: ' . $error,
-                'info' => $info,
-                'postData' => $postData,
-                'rutaApi' => $rutaApi
+                'mensaje' => 'Error al conectar con el servidor del Instituto.',
+                'detalle' => $error,
+                'ruta' => $rutaApi
             ]);
             return;
         }
 
-        // Respuesta normal
-        echo $response ?: json_encode(['status' => false, 'mensaje' => 'Respuesta vacía del servidor del Instituto.']);
+        // Validar si la respuesta es JSON
+        $jsonData = json_decode($response, true);
+        if ($jsonData === null) {
+            echo json_encode([
+                'status' => false,
+                'mensaje' => 'Respuesta no válida del Instituto.',
+                'respuesta_raw' => $response,
+                'info' => $info
+            ]);
+            return;
+        }
+
+        // Devolver la respuesta del servidor Instituto tal cual
+        echo json_encode($jsonData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 }
-

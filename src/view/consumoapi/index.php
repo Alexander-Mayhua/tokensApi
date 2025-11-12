@@ -33,8 +33,8 @@
                    value="f9595f6e9dba9ec3d7ea7a0bad02ce5d-251111-2">
 
             <!-- 🌐 URL del sistema Instituto -->
-            <input type="hidden" id="ruta_api" name="ruta_api"
-                   value="https://instituto.estudiojuridico.com.pe/">
+           <input type="hidden" id="ruta_api" name="ruta_api"
+       value="https://instituto.estudiojuridico.com.pe/?c=consumoapi&a=verDocenteApiByNombreODni">
 
             <div class="text-center mt-3">
                 <button type="submit" class="btn btn-custom px-5">
@@ -59,7 +59,7 @@ document.getElementById('formConsumo').addEventListener('submit', async function
     cont.innerHTML = '<div class="alert alert-info">Buscando docente...</div>';
 
     try {
-        const response = await fetch('index.php?r=consumoapi/procesar', {
+        const response = await fetch('index.php?r=consumoapi/consumir', {
             method: 'POST',
             body: formData
         });
