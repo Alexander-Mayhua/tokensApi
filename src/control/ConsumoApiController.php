@@ -3,22 +3,22 @@ namespace App\Control;
 
 class ConsumoApiController {
 
-    // Muestra el buscador de docentes
+    // ✅ Muestra el formulario principal
     public function index() {
         require __DIR__ . '/../view/consumoapi/index.php';
     }
 
-    // Muestra el token del cliente
+    // ✅ Muestra el token registrado (solo informativo)
     public function form() {
         require __DIR__ . '/../view/consumoapi/form.php';
     }
 
-    // Procesa la solicitud del formulario local y reenvía al servidor del Instituto
+    // ✅ Envía los datos al sistema Instituto con depuración avanzada
     public function procesar() {
         header('Content-Type: application/json; charset=utf-8');
 
-        $token   = $_POST['token']   ?? '';
-        $data    = $_POST['data']    ?? '';
+        $token = $_POST['token'] ?? '';
+        $data = $_POST['data'] ?? '';
         $rutaApi = $_POST['ruta_api'] ?? '';
 
         if (empty($token) || empty($data) || empty($rutaApi)) {
@@ -26,38 +26,46 @@ class ConsumoApiController {
             return;
         }
 
-        // Agregamos el parámetro "tipo" porque el servidor del Instituto lo requiere
+        // 🚀 Preparar datos POST
         $postData = http_build_query([
+            'tipo'  => 'verdocenteapibynombreodni', // 👈 valor exacto que la API del Instituto espera
             'token' => $token,
-            'data'  => $data,
-            'tipo'  => 'verdocenteapibynombreodni'
+            'data'  => $data
         ]);
 
         $ch = curl_init($rutaApi);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $postData,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT        => 15
-        ]);
 
+        // Configuración cURL
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Devuelve la respuesta
+        curl_setopt($ch, CURLOPT_POST, true);           // Método POST
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);// Datos POST
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);// Ignorar verificación SSL
+        curl_setopt($ch, CURLOPT_TIMEOUT, 20);          // Timeout 20s
+
+        // 🔹 Depuración y seguimiento
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Seguir redirecciones
+        curl_setopt($ch, CURLOPT_VERBOSE, true);        // Depuración cURL
+
+        // Ejecutar cURL
         $response = curl_exec($ch);
+        $info = curl_getinfo($ch);      // Información de la conexión
         $error = curl_error($ch);
         curl_close($ch);
 
+        // Si hay error, mostrar detalles
         if ($error) {
-            echo json_encode(['status' => false, 'mensaje' => 'Error al conectar con el servidor: ' . $error]);
+            echo json_encode([
+                'status' => false,
+                'mensaje' => 'Error cURL: ' . $error,
+                'info' => $info,
+                'postData' => $postData,
+                'rutaApi' => $rutaApi
+            ]);
             return;
         }
 
-        // Si el servidor no responde nada
-        if (!$response) {
-            echo json_encode(['status' => false, 'mensaje' => 'Respuesta vacía del servidor.']);
-            return;
-        }
-
-        echo $response;
+        // Respuesta normal
+        echo $response ?: json_encode(['status' => false, 'mensaje' => 'Respuesta vacía del servidor del Instituto.']);
     }
 }
+
