@@ -1,38 +1,36 @@
 <?php
-class ConsumoApiController
-{
-    public function index()
-    {
-        // Carga la vista principal del formulario
+namespace App\Control;
+
+class ConsumoApiController {
+    
+    // Muestra el formulario de búsqueda
+    public function index() {
         require __DIR__ . '/../view/consumoapi/index.php';
     }
 
-    public function procesar()
-    {
-        header('Content-Type: application/json; charset=utf-8');
+    // Muestra el token del cliente
+    public function form() {
+        require __DIR__ . '/../view/consumoapi/form.php';
+    }
 
-        $tipo = $_POST['tipo'] ?? '';
+    // Procesa la petición hacia la API principal
+    public function procesar() {
         $token = $_POST['token'] ?? '';
         $data = $_POST['data'] ?? '';
-        $ruta_api = $_POST['ruta_api'] ?? '';
+        $rutaApi = $_POST['ruta_api'] ?? '';
 
-        if (empty($ruta_api)) {
-            echo json_encode(['status' => false, 'mensaje' => 'No se especificó la ruta del API']);
+        if (empty($token) || empty($data) || empty($rutaApi)) {
+            echo json_encode(['status' => false, 'mensaje' => 'Faltan datos para procesar la solicitud.']);
             return;
         }
 
-        $postData = [
-            'tipo' => $tipo,
-            'token' => $token,
-            'data' => $data
-        ];
+        $postData = http_build_query(['token' => $token, 'data' => $data]);
 
-        $ch = curl_init($ruta_api);
+        $ch = curl_init($rutaApi);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
         $response = curl_exec($ch);
         $error = curl_error($ch);
         curl_close($ch);
@@ -42,16 +40,6 @@ class ConsumoApiController
             return;
         }
 
-        $jsonData = json_decode($response, true);
-        if ($jsonData === null) {
-            echo json_encode([
-                'status' => false,
-                'mensaje' => 'La respuesta del servidor no es un JSON válido',
-                'respuesta_raw' => $response
-            ]);
-            return;
-        }
-
-        echo json_encode($jsonData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        echo $response ?: json_encode(['status' => false, 'mensaje' => 'Respuesta vacía del servidor.']);
     }
 }
