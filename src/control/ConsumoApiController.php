@@ -3,34 +3,41 @@ namespace App\Control;
 
 class ConsumoApiController {
 
-    // ✅ Muestra el formulario principal
     public function index() {
         require __DIR__ . '/../view/consumoapi/index.php';
     }
 
-    // ✅ Muestra el token registrado (opcional)
     public function form() {
         require __DIR__ . '/../view/consumoapi/form.php';
     }
 
-    // ✅ Envía los datos al sistema del Instituto
     public function procesar() {
         header('Content-Type: application/json; charset=utf-8');
 
-        $token = $_POST['token'] ?? '';
-        $data = $_POST['data'] ?? '';
+        $token   = $_POST['token']    ?? '';
+        $data    = $_POST['data']     ?? '';
         $rutaApi = $_POST['ruta_api'] ?? '';
 
         if (empty($token) || empty($data) || empty($rutaApi)) {
-            echo json_encode(['status' => false, 'mensaje' => 'Faltan datos para procesar la solicitud.']);
-            return;
+            echo json_encode([
+                'status'  => false,
+                'mensaje' => 'Faltan datos para procesar la solicitud.'
+            ]);
+            exit;
         }
 
-        // 🚀 Preparar datos POST exactos que la API del Instituto espera
+        if (!filter_var($rutaApi, FILTER_VALIDATE_URL)) {
+            echo json_encode([
+                'status'  => false,
+                'mensaje' => 'URL de API no válida.'
+            ]);
+            exit;
+        }
+
         $postData = http_build_query([
             'tipo'  => 'verdocenteapibynombreodni',
             'token' => $token,
-            'data'  => $data
+            'data'  => $data,
         ]);
 
         $ch = curl_init($rutaApi);
@@ -39,38 +46,39 @@ class ConsumoApiController {
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_TIMEOUT, 20);
-
-        // Seguir redirecciones por si el hosting redirige HTTP/HTTPS
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded'
+        ]);
 
         $response = curl_exec($ch);
-        $error = curl_error($ch);
-        $info = curl_getinfo($ch);
+        $error    = curl_error($ch);
+        $info     = curl_getinfo($ch);
         curl_close($ch);
 
         if ($error) {
             echo json_encode([
-                'status' => false,
+                'status'  => false,
                 'mensaje' => 'Error al conectar con el servidor del Instituto.',
                 'detalle' => $error,
-                'ruta' => $rutaApi
-            ]);
-            return;
+                'ruta'    => $rutaApi
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
         }
 
-        // Validar si la respuesta es JSON
         $jsonData = json_decode($response, true);
         if ($jsonData === null) {
             echo json_encode([
-                'status' => false,
-                'mensaje' => 'Respuesta no válida del Instituto.',
+                'status'        => false,
+                'mensaje'       => 'Respuesta no válida del Instituto (no es JSON).',
                 'respuesta_raw' => $response,
-                'info' => $info
-            ]);
-            return;
+                'http_code'     => $info['http_code'] ?? null,
+                'content_type'  => $info['content_type'] ?? null,
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
         }
 
-        // Devolver la respuesta del servidor Instituto tal cual
-        echo json_encode($jsonData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        echo json_encode($jsonData, JSON_UNESCAPED_UNICODE);
+        exit;
     }
 }
