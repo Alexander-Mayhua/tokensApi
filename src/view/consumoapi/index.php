@@ -51,7 +51,7 @@
 
                 <!-- 🔒 Token del cliente autorizado -->
                 <input type="hidden" id="token" name="token"
-                    value="f9595f6e9dba9ec3d7ea7a0bad02ce5d-251111-2">
+                    value="5085c6ec3a4c6a82a1e6b8b1ed4d518d-251113-2">
 
                 <!-- 🌐 URL del sistema Instituto -->
                 <input type="hidden" id="ruta_api" name="ruta_api"
@@ -97,6 +97,7 @@
                     cont.innerHTML = '<div class="alert alert-info">No se encontraron docentes.</div>';
                     return;
                 }
+                
 
                 let tabla = `<table class="table table-striped align-middle">
                     <thead><tr>
