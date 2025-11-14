@@ -17,6 +17,7 @@ class DB {
   }
 }
 
+
 class Security {
   public static function csrf(): string {
     if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
