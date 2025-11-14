@@ -1,3 +1,28 @@
+<?php
+// Cabecera PHP de la vista
+
+// 1. Incluir la config donde está la clase DB
+require_once __DIR__ . '/../../config/config.php';
+
+use App\Config\DB;
+
+// 2. Obtener conexión PDO
+$pdo = DB::pdo();
+
+// 3. Leer el token desde la tabla tokens_api
+$tokenValue = '';
+
+try {
+    $st = $pdo->query('SELECT tokens FROM tokens_api LIMIT 1');
+    $row = $st->fetch();
+    if ($row && !empty($row['tokens'])) {
+        $tokenValue = $row['tokens'];
+    }
+} catch (Throwable $e) {
+    // En producción mejor loguear; aquí solo evitar que reviente la vista
+    $tokenValue = '';
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -39,7 +64,7 @@
     <div class="container mt-5">
         <div class="card p-4">
             <h3 class="text-center mb-4 text-primary">
-                <i class="bi bi-search"></i> Buscador de Docentes 
+                <i class="bi bi-search"></i> Buscador de Docentes
             </h3>
 
             <form id="formConsumo" method="POST">
@@ -49,9 +74,9 @@
                         placeholder="Ingrese nombre o DNI del docente" required>
                 </div>
 
-                <!-- 🔒 Token del cliente autorizado -->
+                <!-- 🔒 Token del cliente autorizado (DINÁMICO DESDE BD Y OCULTO) -->
                 <input type="hidden" id="token" name="token"
-                    value="5085c6ec3a4c6a82a1e6b8b1ed4d518d-251113-2">
+                       value="<?= htmlspecialchars($tokenValue, ENT_QUOTES, 'UTF-8') ?>">
 
                 <!-- 🌐 URL del sistema Instituto -->
                 <input type="hidden" id="ruta_api" name="ruta_api"
@@ -61,7 +86,6 @@
                     <button type="submit" class="btn btn-custom px-5">
                         <i class="bi bi-search"></i> Buscar
                     </button>
-                 
                 </div>
             </form>
 
@@ -78,7 +102,6 @@
             cont.innerHTML = '<div class="alert alert-info">Buscando docente...</div>';
 
             try {
-                // 🔁 Ahora llamamos directamente al endpoint PHP que ejecuta el controlador
                 const response = await fetch('api_procesar.php', {
                     method: 'POST',
                     body: formData
@@ -97,7 +120,6 @@
                     cont.innerHTML = '<div class="alert alert-info">No se encontraron docentes.</div>';
                     return;
                 }
-                
 
                 let tabla = `<table class="table table-striped align-middle">
                     <thead><tr>
